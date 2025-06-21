@@ -320,10 +320,12 @@ pre {
 	background-color: #f5f5f5;
 	padding: 1rem;
 	overflow-x: auto;
+	font-size: 0.9em;
 }
 
 code {
 	font-family: "Computer Modern Typewriter", monospace;
+	font-size: 0.9em;
 }
 
 hr {

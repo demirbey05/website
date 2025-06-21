@@ -19,6 +19,7 @@ import (
 type Post struct {
 	Title    string
 	Date     string
+	Author   string
 	Content  template.HTML
 	FileName string
 }
@@ -26,6 +27,8 @@ type Post struct {
 type PageData struct {
 	PageTitle string
 	Title     string
+	Date      string
+	Author    string
 	Posts     []Post
 	Body      template.HTML
 }
@@ -74,14 +77,48 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := strings.TrimPrefix(r.URL.Path, "/post/")
-	content, err := os.ReadFile(filepath.Join("posts", fileName))
+	contentBytes, err := os.ReadFile(filepath.Join("posts", fileName))
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
 		return
 	}
 
 	var buf bytes.Buffer
-	if err := md.Convert(content, &buf); err != nil {
+	contentStr := string(contentBytes)
+
+	// Parse YAML front matter if present
+	var author, date string
+	if strings.HasPrefix(contentStr, "---") {
+		parts := strings.SplitN(contentStr, "\n", -1)
+		end := -1
+		for i := 1; i < len(parts); i++ {
+			if strings.TrimSpace(parts[i]) == "---" {
+				end = i
+				break
+			}
+		}
+		if end != -1 {
+			for _, l := range parts[1:end] {
+				kv := strings.SplitN(l, ":", 2)
+				if len(kv) != 2 {
+					continue
+				}
+				key := strings.TrimSpace(kv[0])
+				val := strings.Trim(strings.TrimSpace(kv[1]), "\"")
+				switch strings.ToLower(key) {
+				case "author":
+					author = val
+				case "date":
+					date = val
+				case "title":
+					// optional: override title
+				}
+			}
+			contentStr = strings.Join(parts[end+1:], "\n")
+		}
+	}
+
+	if err := md.Convert([]byte(contentStr), &buf); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -94,13 +131,14 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	date := parts[0] + "-" + parts[1] + "-" + parts[2]
+	date = parts[0] + "-" + parts[1] + "-" + parts[2]
 	caser := cases.Title(language.English)
 	title := caser.String(strings.ReplaceAll(parts[3], "-", " "))
 
 	post := Post{
 		Title:    title,
 		Date:     date,
+		Author:   author,
 		Content:  template.HTML(buf.String()),
 		FileName: fileName,
 	}
@@ -111,6 +149,8 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		PageTitle: "Academic Blog",
 		Title:     post.Title,
+		Date:      post.Date,
+		Author:    post.Author,
 		Body:      post.Content,
 	}
 
@@ -177,14 +217,14 @@ const baseTemplate = `
 <body>
 	<div class="container">
 		<header>
-			<h1>{{.PageTitle}}</h1>
+			<h1><a href="/">{{.PageTitle}}</a></h1>
 		</header>
 		<main>
 			{{template "content" .}}
 		</main>
 		<footer>
 			<hr>
-			<p>Academic Blog · Built with Go</p>
+			<p>Academic Blog · Built with Go and ❤️</p>
 		</footer>
 	</div>
 </body>
@@ -207,7 +247,7 @@ const postTemplate = `{{define "css"}}` + css + `{{end}}
 {{define "content"}}
 	<article>
 		<header>
-			<h1>{{.Title}}</h1>
+			<p class="meta"><time datetime="{{.Date}}">{{.Date}}</time> · <span class="author">{{.Author}}</span></p>
 		</header>
 		<div class="content">
 			{{.Body}}

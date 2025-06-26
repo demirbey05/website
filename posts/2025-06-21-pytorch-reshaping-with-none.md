@@ -67,3 +67,4 @@ def sequence_mask_with_reshape(X, valid_len, value= -1e6):
 ```
 
 As you can see, it is more readable.
+

@@ -69,7 +69,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		PageTitle: "Academic Blog",
 		Posts:     posts,
-		About:     template.HTML("<p>Hello everyone! I am a software engineer with a passion for AI. I am currently working on Reinforcement Learning and LLM Reasoning. Feel free to send a cold email to <a href='mailto:okan@detorch.xyz'>okan@detorch.xyz</a> if you have questions, or want to offer collaborations or jobs.</p>"),
+		About:     template.HTML("<p>Hello everyone! I am a software engineer with a passion for AI. I am currently working on <b>Reinforcement Learning</b> and <b>LLM Reasoning</b>. Feel free to send a cold email to <a href='mailto:okan@detorch.xyz'>okan@detorch.xyz</a> if you have questions, or want to offer collaborations or jobs.</p>"),
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
